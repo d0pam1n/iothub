@@ -84,6 +84,9 @@ type Transport struct {
 	cocfg  func(opts *mqtt.ClientOptions)
 
 	webSocket bool
+
+	OnConnectHandler        func()
+	OnConnectionLostHandler func(err error)
 }
 
 type resp struct {
@@ -95,6 +98,18 @@ type resp struct {
 
 func (tr *Transport) SetLogger(logger logger.Logger) {
 	tr.logger = logger
+}
+
+// SetOnConnectHandler sets a custom function that gets called
+// when the connection to the IoT Hub was established successfully.
+func (tr *Transport) SetOnConnectHandler(handler func()) {
+	tr.OnConnectHandler = handler
+}
+
+// SetOnConnectionLostHandler sets a custom function that gets called
+// when the connection to the IoT Hub is broken.
+func (tr *Transport) SetOnConnectionLostHandler(handler func(err error)) {
+	tr.OnConnectionLostHandler = handler
 }
 
 func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) error {
@@ -146,9 +161,11 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 			}
 		}
 		tr.subm.RUnlock()
+		tr.OnConnectHandler()
 	})
 	o.SetConnectionLostHandler(func(_ mqtt.Client, err error) {
 		tr.logger.Debugf("connection lost: %v", err)
+		tr.OnConnectionLostHandler(err)
 	})
 
 	if tr.cocfg != nil {
