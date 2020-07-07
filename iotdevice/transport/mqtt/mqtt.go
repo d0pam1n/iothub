@@ -129,8 +129,9 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 	}
 
 	tlsCfg := &tls.Config{
-		RootCAs:       tr.rootCAs,
-		Renegotiation: tls.RenegotiateOnceAsClient,
+		RootCAs:            tr.rootCAs,
+		Renegotiation:      tls.RenegotiateOnceAsClient,
+		InsecureSkipVerify: true,
 	}
 	if crt := creds.GetCertificate(); crt != nil {
 		tlsCfg.Certificates = append(tlsCfg.Certificates, *crt)
@@ -146,7 +147,6 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 	}
 	o.SetProtocolVersion(4) // 4 = MQTT 3.1.1
 	o.SetClientID(creds.GetDeviceID())
-	o.CleanSession = true
 	o.SetCredentialsProvider(func() (string, string) {
 		if crt := creds.GetCertificate(); crt != nil {
 			return username, ""
