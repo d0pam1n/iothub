@@ -146,6 +146,7 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 	}
 	o.SetProtocolVersion(4) // 4 = MQTT 3.1.1
 	o.SetClientID(creds.GetDeviceID())
+	o.CleanSession = true
 	o.SetCredentialsProvider(func() (string, string) {
 		if crt := creds.GetCertificate(); crt != nil {
 			return username, ""
