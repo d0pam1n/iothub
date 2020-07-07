@@ -3,6 +3,7 @@ package mqtt
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/url"
@@ -55,11 +56,9 @@ func WithWebSocket(enable bool) TransportOption {
 	}
 }
 
-// WithInsecureSkipVerify disables SSL certificate checks.
-// This should only be used for testing purposes and development.
-func WithInsecureSkipVerify(disable bool) TransportOption {
+func WithRootCAs(certs *x509.CertPool) TransportOption {
 	return func(tr *Transport) {
-		tr.insecureSkipVerify = disable
+		tr.rootCAs = certs
 	}
 }
 
@@ -91,11 +90,12 @@ type Transport struct {
 	logger logger.Logger
 	cocfg  func(opts *mqtt.ClientOptions)
 
-	webSocket          bool
-	insecureSkipVerify bool
+	webSocket bool
 
 	OnConnectHandler        func()
 	OnConnectionLostHandler func(err error)
+
+	rootCAs *x509.CertPool
 }
 
 type resp struct {
@@ -128,10 +128,13 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 		return errors.New("already connected")
 	}
 
+	if tr.rootCAs == nil {
+		tr.rootCAs = common.RootCAs()
+	}
+
 	tlsCfg := &tls.Config{
-		RootCAs:            common.RootCAs(),
-		Renegotiation:      tls.RenegotiateOnceAsClient,
-		InsecureSkipVerify: true,
+		RootCAs:       tr.rootCAs,
+		Renegotiation: tls.RenegotiateOnceAsClient,
 	}
 	if crt := creds.GetCertificate(); crt != nil {
 		tlsCfg.Certificates = append(tlsCfg.Certificates, *crt)
