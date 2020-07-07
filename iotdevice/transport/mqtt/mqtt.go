@@ -55,6 +55,14 @@ func WithWebSocket(enable bool) TransportOption {
 	}
 }
 
+// WithInsecureSkipVerify disables SSL certificate checks.
+// This should only be used for testing purposes and development.
+func WithInsecureSkipVerify(disable bool) TransportOption {
+	return func(tr *Transport) {
+		tr.insecureSkipVerify = disable
+	}
+}
+
 // New returns new Transport transport.
 // See more: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support
 func New(opts ...TransportOption) transport.Transport {
@@ -83,7 +91,8 @@ type Transport struct {
 	logger logger.Logger
 	cocfg  func(opts *mqtt.ClientOptions)
 
-	webSocket bool
+	webSocket          bool
+	insecureSkipVerify bool
 
 	OnConnectHandler        func()
 	OnConnectionLostHandler func(err error)
@@ -120,8 +129,9 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 	}
 
 	tlsCfg := &tls.Config{
-		RootCAs:       common.RootCAs(),
-		Renegotiation: tls.RenegotiateOnceAsClient,
+		RootCAs:            common.RootCAs(),
+		Renegotiation:      tls.RenegotiateOnceAsClient,
+		InsecureSkipVerify: true,
 	}
 	if crt := creds.GetCertificate(); crt != nil {
 		tlsCfg.Certificates = append(tlsCfg.Certificates, *crt)
