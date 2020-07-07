@@ -128,10 +128,6 @@ func (tr *Transport) Connect(ctx context.Context, creds transport.Credentials) e
 		return errors.New("already connected")
 	}
 
-	if tr.rootCAs == nil {
-		tr.rootCAs = common.RootCAs()
-	}
-
 	tlsCfg := &tls.Config{
 		RootCAs:       tr.rootCAs,
 		Renegotiation: tls.RenegotiateOnceAsClient,
